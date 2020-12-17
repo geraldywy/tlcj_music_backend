@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}" />
+    </head>
+    <body>
+        <h3>Login to access content:</h3>
+        <form>
+            <label for="uname">Username:</label>
+            <input type="text" id="uname" name="uname">
+            <label for="pword">Password:</label>
+            <input type="text" id="pwrod" name="pword">
+            <button type="submit">Login</button>
+        </form>
+        {% if error %}
+        <h1>Error: {{ error }}!</h1>
+        {% endif %}
+        <small>PS: If you do not know what this is for, you are in the wrong place. &#128512;</small>
+    <body>
+</html>
