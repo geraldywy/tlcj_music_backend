@@ -4,11 +4,11 @@
     </head>
     <body>
         <h3>Login to access content:</h3>
-        <form>
-            <label for="uname">Username:</label>
-            <input type="text" id="uname" name="uname">
-            <label for="pword">Password:</label>
-            <input type="text" id="pwrod" name="pword">
+        <form action="/login" method="POST">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password">
             <button type="submit">Login</button>
         </form>
         {% if error %}

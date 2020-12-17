@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/modify_home.css') }}" />
+    </head>
+    <body>
+        <h2>Modifying home page</h2>
+        <h4>Current images used for wallpaper:</h4>
+        <small>Past images are not stored and hence not retrievable, changes are permanent! This ain't a file storage site my dude.</small>
+        <br />
+        <br />
+        {% if error %}
+        <h3>Error: {{ error }}!</h3>
+        <br />
+        <br />
+        {% endif %}
+        {% for pic in pics %}
+            <div>
+                <img src={{pic}} class="pic" alt={{pic}}/>
+                <form action="/replace_home_pic/{{loop.index}}" enctype="multipart/form-data" method="POST">
+                    <input class="file_input" type="file" name="new_pic" accept="image/x-png, image/gif, image/jpeg">
+                    <button type="submit" >Confirm replacement</button>
+                </form>
+            <div>
+        {% endfor %}
+    </home>
+<html>

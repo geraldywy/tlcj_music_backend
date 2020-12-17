@@ -6,6 +6,27 @@
         {% else %}
         <h1>Hello, unknown!</h1>
         {% endif %}
-
+        <h3>Which page's content would you like to modify?</h3>
+        <ul>
+            <li>
+                <a href="/home">Home Page</a>
+            </li>
+            <li>
+                <a href="/music">Music</a>
+            </li>
+            <li>
+                <a href="/blog">Blog</a>
+            </li>
+            <li>
+                <a href="/about">About</a>
+            </li>
+            <li>
+                <a href="/socials">Socials</a>
+            </li>
+        </ul>
+        
+        <form action="/logout" method="GET">
+            <button type="submit">Log out</button>
+        </form>
     </body>
 </html>

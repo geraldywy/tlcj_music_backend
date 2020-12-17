@@ -1,0 +1,10 @@
+.pic {
+    width: 400px;
+    margin-bottom: 50px;
+    margin-top: 50px;
+    vertical-align: middle;
+}
+
+form {
+    display: inline;
+}
