@@ -1,0 +1,54 @@
+<html>
+    <navbar>
+        <h3>Which page's content would you like to modify?</h3>
+        <ul>
+            <li>
+                <a href="/home">Home Page</a>
+            </li>
+            <li>
+                <a href="/music">Music</a>
+            </li>
+            <li>
+                <a href="/blog">Blog</a>
+            </li>
+            <li>
+                <a href="/about">About</a>
+            </li>
+            <li>
+                <a href="/socials">Socials</a>
+            </li>
+        </ul>
+        
+        <form action="/logout" method="GET">
+            <button type="submit">Log out</button>
+        </form>
+    </navbar>
+    <h4>Pinned songs: </h4>
+    <small>Restricted to 3 for now. Can go more, but I tink shouldn't pin too much. Lmk if want more.</small>
+    <br />
+    <br>
+    {% for pin in pinned %}
+        <div>
+            <a target="_blank" rel="noopener noreferrer" href="{{pin[1]}}">{{pin[0]}}</a>
+        <div>
+    {% endfor %}
+
+    <br>
+    <br>
+    <h4>Songs under original: </h4>
+    {% for org in originals %}
+        <div>
+            <a target="_blank" rel="noopener noreferrer" href="{{org[1]}}">{{org[0]}}</a>
+        <div>
+    {% endfor %}
+
+    <br>
+    <br>
+    <h4>Songs under covers: </h4>
+    {% for cov in covers %}
+        <div>
+            <a target="_blank" rel="noopener noreferrer" href="{{cov[1]}}">{{cov[0]}}</a>
+        <div>
+    {% endfor %}
+
+</html>

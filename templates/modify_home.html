@@ -3,13 +3,46 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/modify_home.css') }}" />
     </head>
     <body>
+        <navbar>
+        <h3>Which page's content would you like to modify?</h3>
+        <ul>
+            <li>
+                <a href="/home">Home Page</a>
+            </li>
+            <li>
+                <a href="/music">Music</a>
+            </li>
+            <li>
+                <a href="/blog">Blog</a>
+            </li>
+            <li>
+                <a href="/about">About</a>
+            </li>
+            <li>
+                <a href="/socials">Socials</a>
+            </li>
+        </ul>
+        
+        <form action="/logout" method="GET">
+            <button type="submit">Log out</button>
+        </form>
+        </navbar>
         <h2>Modifying home page</h2>
-        <h4>Current images used for wallpaper:</h4>
+        
         <small>Past images are not stored and hence not retrievable, changes are permanent! This ain't a file storage site my dude.</small>
+        <p>Images uploaded must be of jpg extension, eg: pic1.jpg</p>
+        <p>Changes might take a few hours to be reflected, due to html caching, ctrl-f5 helps to refresh your local browser cache.</p>
+        <p>Image at the end is for signature logo. </p>
+        <h4>Current images used for wallpaper:</h4>
         <br />
         <br />
         {% if error %}
-        <h3>Error: {{ error }}!</h3>
+        <h3>Error: {{ error }}</h3>
+        <br />
+        <br />
+        {% endif %}
+        {% if feedback %}
+        <h3>Feedback: {{ feedback }}</h3>
         <br />
         <br />
         {% endif %}
@@ -18,7 +51,7 @@
                 <img src={{pic}} class="pic" alt={{pic}}/>
                 <form action="/replace_home_pic/{{loop.index}}" enctype="multipart/form-data" method="POST">
                     <input class="file_input" type="file" name="new_pic" accept="image/x-png, image/gif, image/jpeg">
-                    <button type="submit" >Confirm replacement</button>
+                    <button type="submit">Confirm replacement</button>
                 </form>
             <div>
         {% endfor %}

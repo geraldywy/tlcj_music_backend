@@ -7,6 +7,7 @@ from flask_mysqldb import MySQL
 import os
 import io
 from base64 import encodebytes
+import shutil
 from PIL import Image
 
 from werkzeug.utils import secure_filename
@@ -28,6 +29,17 @@ app.config['MYSQL_DB'] = os.getenv("MYSQL_DB")
 app.config['MYSQL_PORT'] = int(os.getenv("MYSQL_PORT"))
 
 pics = []
+
+@app.after_request
+def add_header(response):
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'
+    response.headers['Cache-Control'] = 'public, max-age=0'
+    response.cache_control.no_store = True
+    return response
 
 @app.route('/', methods=["GET"])
 def index():
@@ -70,7 +82,17 @@ def format_home_pic_path(filename):
 
 # home pics must be stored in static/images directory
 def get_home_pics():
-    return [format_home_pic_path(filename) for filename in os.listdir("./" + app.static_url_path + "/images/")]
+    # clean up files that are not sig-logo.jpg or pic[1-8].jpg
+    allowed_pics = [f'pic{i}' for i in range(1, 9)]
+    allowed_pics.append("sig-logo")
+    pics = []
+    for filename in os.listdir("." + app.static_url_path + "/images/"):
+        if filename.split(".")[0] not in allowed_pics:
+            os.remove("." + format_home_pic_path(filename))
+        else:
+            pics.append(format_home_pic_path(filename))
+    return pics
+    # return [format_home_pic_path(filename) for filename in os.listdir("." + app.static_url_path + "/images/")]
 
 @app.route("/home")
 def modify_home():
@@ -79,7 +101,7 @@ def modify_home():
     pics = get_home_pics()
     return render_template("modify_home.html", pics=pics)
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -99,27 +121,39 @@ def replace_home_pic(num):
         return render_template("modify_home.html", pics=pics, error="No selected file")
     if new_pic and allowed_file(new_pic.filename):
         filename = secure_filename(new_pic.filename)
-        pics[num] = filename
+        pics[num] = format_home_pic_path(filename)
         os.remove("." + old_filename)
         new_pic.save("." + format_home_pic_path(filename))
-        return redirect(url_for("modify_home", pics=pics))
+        shutil.copy("." + format_home_pic_path(filename), "." + old_filename)
+        return render_template("modify_home.html", pics=pics, feedback="Updated!")
+    else:
+        return render_template("modify_home.html", pics=pics, error="Image file must be .jpg")
 
-def get_response_image(image_path):
-    pil_image = Image.open(image_path, mode='r')
-    byte_arr = io.BytesIO()
-    pic_format = "JPG" if os.path.splitext(image_path)[1].upper() in ("JPEG", "JPG") else "PNG"
-    pil_image.save(byte_arr, format=pic_format)
-    encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii')
-    return encoded_img
-
-# works but takes really long cause of base64 data
-# need to reconsider if this is the best way to do this
-@app.route("/v1/api/get_home_wallpapers", methods=["GET"])
-def get_home_wallpapers():
-    if not valid():
-        return "ERROR: NOT AUTHENTICATED!"
-    encoded_images = []
-    for image_path in get_home_pics():
-        encoded_images.append(get_response_image("." + image_path))
-    return jsonify({'wallpapers': encoded_images})
+# query db for a list of music, tagged as original/cover/pinned
+# data columns: [ title | link | category | pinned ]
+def fetch_music():
+    cur = mysql.connection.cursor()
+    cur.execute('''
+        SELECT * FROM music.songs
+    ''')
+    rv = cur.fetchall()
+    originals = []
+    covers = []
+    pinned = []
+    for song in rv:
+        title, link, category, pin = song
+        info = (title, link)
+        if pin:
+            pinned.append(info)
+        if category.lower() == "originals":
+            originals.append(info)
+        elif category.lower() == "covers":
+            covers.append(info)
     
+    return originals, covers, pinned
+
+@app.route("/music", methods=["GET"])
+def modify_music():
+    originals, covers, pinned = fetch_music()
+
+    return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers)
