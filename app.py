@@ -29,6 +29,9 @@ app.config['MYSQL_DB'] = os.getenv("MYSQL_DB")
 app.config['MYSQL_PORT'] = int(os.getenv("MYSQL_PORT"))
 
 pics = []
+pinned = []
+originals = []
+covers = []
 
 @app.after_request
 def add_header(response):
@@ -92,7 +95,6 @@ def get_home_pics():
         else:
             pics.append(format_home_pic_path(filename))
     return pics
-    # return [format_home_pic_path(filename) for filename in os.listdir("." + app.static_url_path + "/images/")]
 
 @app.route("/home")
 def modify_home():
@@ -137,6 +139,9 @@ def fetch_music():
         SELECT * FROM music.songs
     ''')
     rv = cur.fetchall()
+    global originals
+    global covers
+    global pinned
     originals = []
     covers = []
     pinned = []
@@ -154,6 +159,51 @@ def fetch_music():
 
 @app.route("/music", methods=["GET"])
 def modify_music():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
     originals, covers, pinned = fetch_music()
-
     return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers)
+
+def insert_song(title, link, source, cat, to_pin, unpinned):
+    cur = mysql.connection.cursor()
+    try:
+        if unpinned:
+            unpin_title, unpin_link = unpinned.split(" | ")
+            # unpin the song to unpin first
+            cur.execute(f'''
+                UPDATE music.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}'
+            ''')
+        cur.execute(f'''
+            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {"true" if to_pin else "false"})
+        ''')
+        mysql.connection.commit()
+        return True
+    except Exception as e:
+        print("Problem inserting into db: " + str(e))
+        return False
+
+@app.route("/add_song", methods=["GET", "POST"])
+def add_song():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+    if not pinned: # if pinned is empty, uninitialized
+        fetch_music() # populate the states, we do not need to use the return value, since it is global
+
+    if request.method == "GET":
+        return render_template("add_song.html", pinned=pinned)
+    else:
+        title, link, source, cat, to_pin, unpinned = request.form.get("song_title"), request.form.get("song_link"), \
+            request.form.get("type"), request.form.get("category"), request.form.get("pinned"), request.form.get("unpin")
+        # sanity check, if we choose to pin, there must be something to unpin
+        # maintain constant 3 pins
+        if to_pin == "yes" and not unpinned:
+            return render_template("add_song.html", pinned=pinned, feedback="Error: Selected pin option, but did not choose a song to unpin")
+        print(title, link, source, cat, to_pin, unpinned)
+        if title and link and source and cat and to_pin: # all options selected
+            if insert_song(title, link, source, cat, to_pin, unpinned):
+                return render_template("add_song.html", pinned=pinned, feedback="Successfully added " + title)
+            else:
+                return render_template("add_song.html", pinned=pinned, feedback="Error adding " + title + ". Form was filled correctly. Error uploading to the MYSQL DB.")
+        else:
+            return render_template("add_song.html", pinned=pinned, feedback="Error: Incomplete form")
+

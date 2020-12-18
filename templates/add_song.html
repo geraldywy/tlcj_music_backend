@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <title>Add a song</title>
+        
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/add_song.css') }}" />
+    <head>
+    <navbar>
+        <h3>Which page's content would you like to modify?</h3>
+        <ul>
+            <li>
+                <a href="/home">Home Page</a>
+            </li>
+            <li>
+                <a href="/music">Music</a>
+            </li>
+            <li>
+                <a href="/blog">Blog</a>
+            </li>
+            <li>
+                <a href="/about">About</a>
+            </li>
+            <li>
+                <a href="/socials">Socials</a>
+            </li>
+        </ul>
+        
+        <form action="/logout" method="GET">
+            <button type="submit">Log out</button>
+        </form>
+        </navbar>
+    <body>
+        {% if feedback %}
+        <h3>{{ feedback }}</h3>
+        <br />
+        <br />
+        {% endif %}
+        <h3>Add a song: </h3>
+        <form action="" method="POST">
+            <label for="song_title">Song title:</label>
+            <input name="song_title" type="text" class="wide_input"/><br><br>
+            
+            <label for="song_link">Video/clip link:</label>
+            <input name="song_link" type="text" class="wide_input"/><br>
+
+            <p>Video/clip source:</p>
+            <input type="radio" id="youtube" name="type" value="youtube" required>
+            <label for="youtube">youtube</label><br>
+            <input disabled type="radio" id="soundcloud" name="type" value="soundcloud">
+            <label for="soundcloud">soundcloud <small>coming soon...</small></label><br>
+            <input disabled type="radio" id="spotify" name="type" value="spotify">
+            <label for="spotify">spotify <small>coming soon...</small></label>
+
+            <p>Category of the song:</p>
+            <input type="radio" id="originals" name="category" value="originals" required>
+            <label for="originals">originals</label><br>
+            <input type="radio" id="covers" name="category" value="covers">
+            <label for="covers">covers</label><br>
+
+            <p>Pin the song?</p>
+            <input type="radio" id="yes" name="pinned" value="yes" required>
+            <label for="yes">yes</label><br>
+            <input type="radio" id="no" name="pinned" value="no">
+            <label for="no">no</label><br>
+
+            
+            <div id="remove_pin" >
+                Select an existing pinned song to be replaced:
+                {% for pin in pinned %}
+                    {{pin}} <br>
+                    <input value="{{pin[0] + " | " + pin[1]}}" type="radio" name="unpin"  />
+                    <label for={{ pin[0] }}><a target="_blank" rel="noopener noreferrer" href="{{ pin[1] }}">{{ pin[0] }}</a></label><br>
+                {% endfor %}
+            </div>
+
+            <button type="submit"> Add </button>
+
+        </form>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script>
+            $('input[type="radio"][name="pinned"]').on('change',function(){
+            var ThisIt = $(this);
+            if(ThisIt.val() == "no"){
+                // when user select no
+                $('#remove_pin').fadeOut();
+            }else{
+                // when user select yes
+                $('#remove_pin').fadeIn();
+            }
+            });
+        </script>
+    </body>
+</html>
