@@ -78,7 +78,7 @@
         <script>
             $('input[type="radio"][name="pinned"]').on('change',function(){
             var ThisIt = $(this);
-            if(ThisIt.val() == "no"){
+            if(ThisIt.attr('id') == "no"){
                 // when user select no
                 $('#remove_pin').fadeOut();
             }else{

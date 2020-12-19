@@ -51,11 +51,11 @@
                 <input name="song_link" type="text" class="wide_input" value="{{song[1]}}" /><br>
 
                 <p>Video/clip source:</p>
-                <input type="radio" id="youtube" name="type" value="youtube" required {{"checked" if "youtube" in song[1] else ""}}>
+                <input type="radio" id="youtube" name="type" value="youtube" required {{"checked" if song[4] == "youtube" else ""}}>
                 <label for="youtube">youtube</label><br>
-                <input disabled type="radio" id="soundcloud" name="type" value="soundcloud" {{"checked" if "soundcloud" in song[1] else ""}} >
+                <input disabled type="radio" id="soundcloud" name="type" value="soundcloud" {{"checked" if song[4] == "soundcloud" else ""}} >
                 <label for="soundcloud">soundcloud <small>coming soon...</small></label><br>
-                <input disabled type="radio" id="spotify" name="type" value="spotify" {{"checked" if "spotify" in song[1] else ""}}>
+                <input disabled type="radio" id="spotify" name="type" value="spotify" {{"checked" if song[4] == "spotify" else ""}}>
                 <label for="spotify">spotify <small>coming soon...</small></label>
 
                 <p>Category of the song:</p>

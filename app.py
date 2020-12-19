@@ -5,6 +5,7 @@ from flask.helpers import url_for
 from markupsafe import escape
 from flask_bcrypt import Bcrypt
 from flask_mysqldb import MySQL
+from flask_cors import CORS, cross_origin
 import os
 import io
 from base64 import encodebytes
@@ -16,11 +17,13 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 mysql = MySQL(app)
 bcrypt = Bcrypt(app)
+cors = CORS(app)
 
 # configuring app
 app.debug = os.getenv("DEBUG")
 app.env = os.getenv("FLASK_ENV")
 app.secret_key = os.getenv('SECRET_KEY')
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 # configuring mysql db connection
 app.config['MYSQL_HOST'] = os.getenv("MYSQL_HOST")
@@ -147,7 +150,7 @@ def fetch_music():
     covers = []
     pinned = []
     for song in rv:
-        title, link, category, pin = song
+        title, link, category, pin, source = song
         if pin:
             pinned.append(song)
         if category.lower() == "originals":
@@ -174,7 +177,7 @@ def insert_song(title, link, source, cat, to_pin, unpinned):
                 UPDATE music.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}';
             ''')
         cur.execute(f'''
-            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {to_pin});
+            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {1 if to_pin else 0}, '{source}');
         ''')
         mysql.connection.commit()
         return True
@@ -196,10 +199,16 @@ def add_song():
             request.form.get("type"), request.form.get("category"), request.form.get("pinned"), request.form.get("unpin")
         # sanity check, if we choose to pin, there must be something to unpin
         # maintain constant 3 pins
-        if to_pin and not unpinned:
+        # clean to_pin into a boolean
+        if isinstance(to_pin, str):
+            if (to_pin.lower() == "true"):
+                to_pin = True
+            else:
+                to_pin = False
+        if to_pin and (not unpinned):
             return render_template("add_song.html", pinned=pinned, feedback="Error: Selected pin option, but did not choose a song to unpin")
         
-        if title and link and source and cat and to_pin: # all options selected
+        if title and link and source and cat: # all options selected
             if insert_song(title, link, source, cat, to_pin, unpinned):
                 return render_template("add_song.html", pinned=pinned, feedback="Successfully added " + title)
             else:
@@ -221,26 +230,26 @@ def edit_song_info():
     # match song_title and link in the originals/pinned list and fetch its data
     song_to_edit = None
     for song in originals:
-        s_title, s_link, _, _ = song
+        s_title, s_link, _, _, _ = song
         info = s_title, s_link
         if info == (title, link):
             song_to_edit = song
             break
     if not song_to_edit: # song exists in covers
         for song in covers:
-            s_title, s_link, _, _ = song
+            s_title, s_link, _, _, _ = song
             info = s_title, s_link
             if info == (title, link):
                 song_to_edit = song
                 break
     return render_template("edit_song_info.html", song=song_to_edit)
 
-def update_song_db(old_title, old_link, title, link, cat, to_pin):
+def update_song_db(old_title, old_link, title, link, cat, to_pin, source):
     cur = mysql.connection.cursor()
     try:
         cur.execute(f'''
             UPDATE music.songs SET title = '{title}', link = '{link}', 
-            category = '{cat}', pinned = {to_pin}
+            category = '{cat}', pinned = {1 if to_pin else 0}, source = '{source}'
             WHERE title = '{old_title}' and link = '{old_link}';
         ''')
         mysql.connection.commit()
@@ -257,15 +266,22 @@ def update_song():
     old_title, old_link, title, link, source, cat, to_pin = request.form.get("old_song_title"), request.form.get("old_song_link"), \
             request.form.get("song_title"), request.form.get("song_link"), \
             request.form.get("type"), request.form.get("category"), request.form.get("pinned")
-    
+
     if not (old_title and old_link and title and link and source and cat):
         return redirect(url_for('modify_music'))
+    
+    # sanitize to_pin
+    if isinstance(to_pin, str):
+        if to_pin.lower() == "true":
+            to_pin = True
+        else:
+            to_pin = False
 
-    new_song = title, link, cat, to_pin
+    new_song = title, link, cat, to_pin, source
     song_idx = -1
 
     # update in db
-    if not update_song_db(old_title, old_link, title, link, cat, to_pin):
+    if not update_song_db(old_title, old_link, title, link, cat, to_pin, source):
         return render_template("edit_song_info.html", song=new_song, feedback="Failed to save in the DB")
     
     # update locally, check if nid to move list
@@ -351,8 +367,8 @@ def modify_pins():
         return redirect(url_for("modify_music"))
 
     # swap pin status
-    old_pin_song = (*old_pin_song[0:3], new_pin_song[3])
-    new_pin_song = (*new_pin_song[0:3], not new_pin_song[3])
+    old_pin_song = (*old_pin_song[0:3], new_pin_song[3], old_pin_song[4])
+    new_pin_song = (*new_pin_song[0:3], not new_pin_song[3], new_pin_song[4])
 
     # replace local copy
     pinned[replace_idx] = new_pin_song
@@ -408,3 +424,13 @@ def delete_song():
     else:
         return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers, feedback="failed to delete in DB: " + title)
 
+# api endpoint to display music lists
+@app.route("/v1/api/music")
+@cross_origin()
+def display_music():
+    originals, covers, pinned = fetch_music()
+    return jsonify({
+        "pinned": pinned,
+        "originals": originals,
+        "covers": covers
+    })
