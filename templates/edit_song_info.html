@@ -1,0 +1,74 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/add_song.css') }}" />
+    </head>
+
+    <body>
+        <navbar>
+            <h3>Which page's content would you like to modify?</h3>
+            <ul>
+                <li>
+                    <a href="/home">Home Page</a>
+                </li>
+                <li>
+                    <a href="/music">Music</a>
+                </li>
+                <li>
+                    <a href="/blog">Blog</a>
+                </li>
+                <li>
+                    <a href="/about">About</a>
+                </li>
+                <li>
+                    <a href="/socials">Socials</a>
+                </li>
+            </ul>
+            
+            <form action="/logout" method="GET">
+                <button type="submit">Log out</button>
+            </form>
+            </navbar>
+
+            <h3>Edit song info:</h3>
+            <p> If you are looking to modify pin status, try <a href="/to-do">here</a> instead.</p>
+
+            {% if feedback %}
+            <h3>{{ feedback }}</h3>
+            <br />
+            <br />
+            {% endif %}
+
+
+            <form action="/update_song" method="POST">
+                <input name="old_song_title" type="text" style="display:none" value="{{song[0]}}"/>
+                <input name="old_song_link" type="text" style="display:none" value="{{song[1]}}" />
+                <input name="pinned" type="text" style="display:none" value="{{song[3]}}" />
+
+                <label for="song_title">Song title:</label>
+                <input name="song_title" type="text" class="wide_input" value="{{song[0]}}"/><br><br>
+                
+                <label for="song_link">Video/clip link:</label>
+                <input name="song_link" type="text" class="wide_input" value="{{song[1]}}" /><br>
+
+                <p>Video/clip source:</p>
+                <input type="radio" id="youtube" name="type" value="youtube" required {{"checked" if "youtube" in song[1] else ""}}>
+                <label for="youtube">youtube</label><br>
+                <input disabled type="radio" id="soundcloud" name="type" value="soundcloud" {{"checked" if "soundcloud" in song[1] else ""}} >
+                <label for="soundcloud">soundcloud <small>coming soon...</small></label><br>
+                <input disabled type="radio" id="spotify" name="type" value="spotify" {{"checked" if "spotify" in song[1] else ""}}>
+                <label for="spotify">spotify <small>coming soon...</small></label>
+
+                <p>Category of the song:</p>
+                <input type="radio" id="originals" name="category" value="originals" required {{"checked" if song[2] == "originals" else ""}}>
+                <label for="originals">originals</label><br>
+                <input type="radio" id="covers" name="category" value="covers" {{"checked" if song[2] == "covers" else ""}} >
+                <label for="covers">covers</label><br>
+
+                <br>
+                <br>
+                <button type="submit">Edit</button>
+                <a href="/music" class="button">Cancel</a>
+            </form>
+    </body>
+
+</html>

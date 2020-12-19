@@ -1,3 +1,23 @@
 #remove_pin{
     display : none;
 }
+
+.wide_input {
+    width: 400px;
+    height: 30px;
+}
+
+a.button {
+    -webkit-appearance: button;
+    -moz-appearance: button;
+    appearance: button;
+
+    text-decoration: none;
+    color: initial;
+    border: 1px solid black;
+    padding: 1px;
+    padding-left: 3px;
+    padding-right: 3px;
+    font-size: 11pt;
+    background-color:#F0F0F0;
+}

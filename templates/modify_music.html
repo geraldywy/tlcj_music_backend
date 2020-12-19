@@ -23,6 +23,16 @@
             <button type="submit">Log out</button>
         </form>
     </navbar>
+
+    <h3>
+        <a href="/add_song">Add a song</a>
+    </h3>
+    <p>You cannot delete a song that is pinned. To delete a song that is pinned, replace it with another song, then delete it.</p>
+    
+    {% if feedback %}
+    <h3>{{ feedback }}</h3>
+    {% endif %}
+
     <h4>Pinned songs: </h4>
     <small>Restricted to 3 for now. Can go more, but I tink shouldn't pin too much. Lmk if want more.</small>
     <br />
@@ -30,6 +40,11 @@
     {% for pin in pinned %}
         <div>
             <a target="_blank" rel="noopener noreferrer" href="{{pin[1]}}">{{pin[0]}}</a>
+            <form action="/replace_pin" method="POST" style="display:inline" >
+                <input type="text" name="song_title" value="{{pin[0]}}" style="display:none">
+                <input type="text" name="song_link" value="{{pin[1]}}" style="display:none">
+                <button type="submit">Replace</button>
+            </form>
         <div>
     {% endfor %}
 
@@ -39,6 +54,17 @@
     {% for org in originals %}
         <div>
             <a target="_blank" rel="noopener noreferrer" href="{{org[1]}}">{{org[0]}}</a>
+            <form action="/edit_song_info" method="POST" style="display:inline" >
+                <input type="text" name="song_title" value="{{org[0]}}" style="display:none">
+                <input type="text" name="song_link" value="{{org[1]}}" style="display:none">
+                <button type="submit">Edit song info</button>
+            </form>
+            <form action="/delete_song" method="POST" style="display:inline" >
+                <input type="text" name="song_title" value="{{org[0]}}" style="display:none">
+                <input type="text" name="song_link" value="{{org[1]}}" style="display:none">
+                <button type="submit" {{"disabled" if org[3]}}>Delete</button>
+            </form>
+            
         <div>
     {% endfor %}
 
@@ -48,14 +74,19 @@
     {% for cov in covers %}
         <div>
             <a target="_blank" rel="noopener noreferrer" href="{{cov[1]}}">{{cov[0]}}</a>
+            <form action="/edit_song_info" method="POST" style="display:inline" >
+                <input type="text" name="song_title" value="{{cov[0]}}" style="display:none">
+                <input type="text" name="song_link" value="{{cov[1]}}" style="display:none">
+                <button type="submit">Edit song info</button>
+            </form>
+            <form action="/delete_song" method="POST" style="display:inline" >
+                <input type="text" name="song_title" value="{{cov[0]}}" style="display:none">
+                <input type="text" name="song_link" value="{{cov[1]}}" style="display:none">
+                <button type="submit" {{"disabled" if cov[3]}}>Delete</button>
+            </form>
         <div>
     {% endfor %}
     <br>
     <br>
-    <h3>Modify the above list?</h3>
-    <ul>
-        <li>
-            <a href="/add_song">Add a song</a>
-        </li>
-    </ul>
+    
 </html>

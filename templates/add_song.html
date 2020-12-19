@@ -57,21 +57,20 @@
             <label for="covers">covers</label><br>
 
             <p>Pin the song?</p>
-            <input type="radio" id="yes" name="pinned" value="yes" required>
+            <input type="radio" id="yes" name="pinned" value=true required>
             <label for="yes">yes</label><br>
-            <input type="radio" id="no" name="pinned" value="no">
+            <input type="radio" id="no" name="pinned" value=false>
             <label for="no">no</label><br>
 
             
             <div id="remove_pin" >
-                Select an existing pinned song to be replaced:
+                Select an existing pinned song to be replaced: <br/>
                 {% for pin in pinned %}
-                    {{pin}} <br>
                     <input value="{{pin[0] + " | " + pin[1]}}" type="radio" name="unpin"  />
                     <label for={{ pin[0] }}><a target="_blank" rel="noopener noreferrer" href="{{ pin[1] }}">{{ pin[0] }}</a></label><br>
                 {% endfor %}
             </div>
-
+            <br>
             <button type="submit"> Add </button>
 
         </form>

@@ -1,3 +1,4 @@
+import enum
 from flask import Flask, render_template, session, redirect, jsonify
 from flask.globals import request
 from flask.helpers import url_for
@@ -55,7 +56,7 @@ def index():
 def fetch_users():
     cur = mysql.connection.cursor()
     cur.execute('''
-        SELECT uname AS username, pword AS password FROM music.users
+        SELECT uname AS username, pword AS password FROM music.users;
     ''')
     rv = cur.fetchall()
     return list(rv)
@@ -136,7 +137,7 @@ def replace_home_pic(num):
 def fetch_music():
     cur = mysql.connection.cursor()
     cur.execute('''
-        SELECT * FROM music.songs
+        SELECT * FROM music.songs;
     ''')
     rv = cur.fetchall()
     global originals
@@ -147,13 +148,12 @@ def fetch_music():
     pinned = []
     for song in rv:
         title, link, category, pin = song
-        info = (title, link)
         if pin:
-            pinned.append(info)
+            pinned.append(song)
         if category.lower() == "originals":
-            originals.append(info)
+            originals.append(song)
         elif category.lower() == "covers":
-            covers.append(info)
+            covers.append(song)
     
     return originals, covers, pinned
 
@@ -171,10 +171,10 @@ def insert_song(title, link, source, cat, to_pin, unpinned):
             unpin_title, unpin_link = unpinned.split(" | ")
             # unpin the song to unpin first
             cur.execute(f'''
-                UPDATE music.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}'
+                UPDATE music.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}';
             ''')
         cur.execute(f'''
-            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {"true" if to_pin else "false"})
+            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {to_pin});
         ''')
         mysql.connection.commit()
         return True
@@ -196,9 +196,9 @@ def add_song():
             request.form.get("type"), request.form.get("category"), request.form.get("pinned"), request.form.get("unpin")
         # sanity check, if we choose to pin, there must be something to unpin
         # maintain constant 3 pins
-        if to_pin == "yes" and not unpinned:
+        if to_pin and not unpinned:
             return render_template("add_song.html", pinned=pinned, feedback="Error: Selected pin option, but did not choose a song to unpin")
-        print(title, link, source, cat, to_pin, unpinned)
+        
         if title and link and source and cat and to_pin: # all options selected
             if insert_song(title, link, source, cat, to_pin, unpinned):
                 return render_template("add_song.html", pinned=pinned, feedback="Successfully added " + title)
@@ -206,4 +206,205 @@ def add_song():
                 return render_template("add_song.html", pinned=pinned, feedback="Error adding " + title + ". Form was filled correctly. Error uploading to the MYSQL DB.")
         else:
             return render_template("add_song.html", pinned=pinned, feedback="Error: Incomplete form")
+
+# changing of pins is not done here, however, changes made to a song that is pinned must be reflected also in the pinned list
+@app.route("/edit_song_info", methods=["POST"])
+def edit_song_info():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+
+    title, link = request.form.get("song_title"), request.form.get("song_link")
+
+    if not (title or link):
+        return redirect(url_for("modify_music"))
+
+    # match song_title and link in the originals/pinned list and fetch its data
+    song_to_edit = None
+    for song in originals:
+        s_title, s_link, _, _ = song
+        info = s_title, s_link
+        if info == (title, link):
+            song_to_edit = song
+            break
+    if not song_to_edit: # song exists in covers
+        for song in covers:
+            s_title, s_link, _, _ = song
+            info = s_title, s_link
+            if info == (title, link):
+                song_to_edit = song
+                break
+    return render_template("edit_song_info.html", song=song_to_edit)
+
+def update_song_db(old_title, old_link, title, link, cat, to_pin):
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(f'''
+            UPDATE music.songs SET title = '{title}', link = '{link}', 
+            category = '{cat}', pinned = {to_pin}
+            WHERE title = '{old_title}' and link = '{old_link}';
+        ''')
+        mysql.connection.commit()
+        return True
+    except Exception as e:
+        print("Problem updating changes into db: " + str(e))
+        return False
+
+@app.route("/update_song", methods=["POST"])
+def update_song():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+
+    old_title, old_link, title, link, source, cat, to_pin = request.form.get("old_song_title"), request.form.get("old_song_link"), \
+            request.form.get("song_title"), request.form.get("song_link"), \
+            request.form.get("type"), request.form.get("category"), request.form.get("pinned")
+    
+    if not (old_title and old_link and title and link and source and cat):
+        return redirect(url_for('modify_music'))
+
+    new_song = title, link, cat, to_pin
+    song_idx = -1
+
+    # update in db
+    if not update_song_db(old_title, old_link, title, link, cat, to_pin):
+        return render_template("edit_song_info.html", song=new_song, feedback="Failed to save in the DB")
+    
+    # update locally, check if nid to move list
+    for idx, song in enumerate(originals):
+        if old_title == song[0] and old_link == song[1]:
+            song_idx = idx
+            break
+    if song_idx != -1:
+        # found the old song in originals
+        if cat == "originals": # no need to move lists, no change in category
+            originals[song_idx] = new_song
+        else:
+            originals.pop(song_idx) # delete from originals and add new song into covers
+            covers.append(new_song)
+
+    if song_idx == -1: # not found, perform the same thing for covers
+        for idx, song in enumerate(covers):
+            if old_title == song[0] and old_link == song[1]:
+                song_idx = idx
+                break
+
+        if song_idx != -1:
+            # found the old song in covers
+            if cat == "covers": # no need to move lists, no change in category
+                covers[song_idx] = new_song
+            else:
+                covers.pop(song_idx) # delete from covers and add new song into originals
+                originals.append(new_song)
+        else: # not found in originals or covers, invalid
+            return "ERROR: SONG NOT FOUND"
+    
+    if to_pin:
+        # this song is being pinned, nid to update it in the pinned list as well
+        for idx, song in enumerate(pinned):
+            if old_title == song[0] and old_link == song[1]:
+                song_idx = idx
+                break
+        pinned[song_idx] = new_song
+
+    return render_template("edit_song_info.html", song=new_song, feedback="updated successfully")
+
+@app.route("/replace_pin", methods=["POST"])
+def change_pins():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+
+    title, link = request.form.get("song_title"), request.form.get("song_link")
+    if not title or not link:
+        redirect(url_for('modify_music'))
+
+    if not originals or not covers or not pinned:
+        fetch_music()
+    unpinned_songs = [song for song in originals+covers if not song[3]] # feed in songs to choose from
+    return render_template("replace_pins.html", song=(title, link), unpinned_songs=unpinned_songs)
+
+@app.route("/modify_pins", methods=["POST"])
+def modify_pins():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+
+    old_pin_title, old_pin_link, new_pin_title, new_pin_link = request.form.get("old_pin_title"), request.form.get("old_pin_link"), \
+            *request.form.get("pin").split(" | ")
+
+    if not (old_pin_title and old_pin_link and new_pin_title and new_pin_link):
+        return redirect(url_for('modify_music'))
+    
+    if not pinned:
+        fetch_music()
+    old_pin_song = None
+    new_pin_song = None
+    replace_idx = -1
+    for idx, song in enumerate(pinned):
+        if song[0] == old_pin_title and song[1] == old_pin_link:
+            old_pin_song = song
+            replace_idx = idx
+            break
+    for song in covers+originals:
+        if song[0] == new_pin_title and song[1] == new_pin_link:
+            new_pin_song = song
+            break
+    
+    if not (old_pin_song and new_pin_song): # user likely refreshed
+        return redirect(url_for("modify_music"))
+
+    # swap pin status
+    old_pin_song = (*old_pin_song[0:3], new_pin_song[3])
+    new_pin_song = (*new_pin_song[0:3], not new_pin_song[3])
+
+    # replace local copy
+    pinned[replace_idx] = new_pin_song
+    
+    # replace in db
+    update_song_db(old_pin_song[0], old_pin_song[1], *old_pin_song)
+    update_song_db(new_pin_song[0], new_pin_song[1], *new_pin_song)
+
+    return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers, feedback="Pinned songs updated!")
+    
+def delete_song_db(title, link):
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(f'''
+            DELETE FROM music.songs WHERE title = '{title}' and link = '{link}';
+        ''')
+        mysql.connection.commit()
+        return True
+    except Exception as e:
+        print("Problem deleting song in db: " + str(e))
+        return False
+
+@app.route("/delete_song", methods=["POST"])
+def delete_song():
+    if not valid():
+        return "ERROR: NOT AUTHENTICATED"
+    
+    if not pinned:
+        fetch_music()
+    
+    title, link = request.form.get("song_title"), request.form.get("song_link")
+    
+    idx = -1
+    for i, song in enumerate(covers + originals):
+        if song[0] == title and song[1] == link: # found song
+            idx = i
+            break
+
+    # check again if it is in pinned
+    for song in pinned:
+        if (song[0] == title and song[1] == link) or idx == -1: # check if song is even in covers or originals 
+            return redirect(url_for("modify_music")) # redirect since user might refresh also
+    
+    # delete local copy
+    if idx < len(covers): # song belongs to covers
+        covers.pop(idx)
+    else:
+        originals.pop(idx - len(covers))
+
+    # delete in DB
+    if delete_song_db(title, link):
+        return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers, feedback="successfully deleted " + title)
+    else:
+        return render_template("modify_music.html", pinned=pinned, originals=originals, covers=covers, feedback="failed to delete in DB: " + title)
 

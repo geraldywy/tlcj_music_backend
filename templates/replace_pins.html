@@ -1,0 +1,50 @@
+<html>
+
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/add_song.css') }}" />
+    </head>
+
+    <body>
+        <navbar>
+            <h3>Which page's content would you like to modify?</h3>
+            <ul>
+                <li>
+                    <a href="/home">Home Page</a>
+                </li>
+                <li>
+                    <a href="/music">Music</a>
+                </li>
+                <li>
+                    <a href="/blog">Blog</a>
+                </li>
+                <li>
+                    <a href="/about">About</a>
+                </li>
+                <li>
+                    <a href="/socials">Socials</a>
+                </li>
+            </ul>
+            
+            <form action="/logout" method="GET">
+                <button type="submit">Log out</button>
+            </form>
+            </navbar>
+
+
+            <h3>Unpinning song: </h3>
+            <a target="_blank" rel="noopener noreferrer" href="{{song[1]}}">{{song[0]}}</a>
+            <h4>Select a song to be pinned, replacing the above:</h4>
+            <form action="/modify_pins" method="POST" >
+                <input name="old_pin_title" type="text" style="display:none" value="{{song[0]}}"/>
+                <input name="old_pin_link" type="text" style="display:none" value="{{song[1]}}" />
+
+                {% for unpinned in unpinned_songs %}
+                    <input value="{{unpinned[0] + " | " + unpinned[1]}}" type="radio" name="pin" required />
+                    <label for={{ unpinned[0] }}><a target="_blank" rel="noopener noreferrer" href="{{ unpinned[1] }}">{{ unpinned[0] }}</a></label><br>
+                {% endfor %}
+                <br>
+                <button>Replace</button>
+                <a href="/music" class="button">Cancel</a>
+            </form>
+    </body>
+</html>
