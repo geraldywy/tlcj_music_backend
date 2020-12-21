@@ -434,3 +434,7 @@ def display_music():
         "originals": originals,
         "covers": covers
     })
+
+
+if __name__ == "__main__":
+    app.run()
