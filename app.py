@@ -141,8 +141,8 @@ def replace_home_pic(num):
 # data columns: [ title | link | category | pinned ]
 def fetch_music():
     cur = mysql.connection.cursor()
-    cur.execute('''
-        SELECT * FROM music.songs;
+    cur.execute(f'''
+        SELECT * FROM {DB_NAME}.songs;
     ''')
     rv = cur.fetchall()
     global originals
