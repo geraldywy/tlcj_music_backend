@@ -32,6 +32,8 @@ app.config['MYSQL_PASSWORD'] = os.getenv("MYSQL_PASSWORD")
 app.config['MYSQL_DB'] = os.getenv("MYSQL_DB")
 app.config['MYSQL_PORT'] = int(os.getenv("MYSQL_PORT"))
 
+DB_NAME = os.getenv("MYSQL_DB")
+
 pics = []
 pinned = []
 originals = []
@@ -58,8 +60,8 @@ def index():
 # return a list of tuples of users' user and password
 def fetch_users():
     cur = mysql.connection.cursor()
-    cur.execute('''
-        SELECT uname AS username, pword AS password FROM music.users;
+    cur.execute(f'''
+        SELECT uname AS username, pword AS password FROM {DB_NAME}.users;
     ''')
     rv = cur.fetchall()
     return list(rv)
@@ -174,10 +176,10 @@ def insert_song(title, link, source, cat, to_pin, unpinned):
             unpin_title, unpin_link = unpinned.split(" | ")
             # unpin the song to unpin first
             cur.execute(f'''
-                UPDATE music.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}';
+                UPDATE {DB_NAME}.songs SET pinned=false WHERE title='{unpin_title}' AND link='{unpin_link}';
             ''')
         cur.execute(f'''
-            INSERT INTO music.songs VALUES ('{title}', '{link}', '{cat}', {1 if to_pin else 0}, '{source}');
+            INSERT INTO {DB_NAME}.songs VALUES ('{title}', '{link}', '{cat}', {1 if to_pin else 0}, '{source}');
         ''')
         mysql.connection.commit()
         return True
@@ -248,7 +250,7 @@ def update_song_db(old_title, old_link, title, link, cat, to_pin, source):
     cur = mysql.connection.cursor()
     try:
         cur.execute(f'''
-            UPDATE music.songs SET title = '{title}', link = '{link}', 
+            UPDATE {DB_NAME}.songs SET title = '{title}', link = '{link}', 
             category = '{cat}', pinned = {1 if to_pin else 0}, source = '{source}'
             WHERE title = '{old_title}' and link = '{old_link}';
         ''')
@@ -383,7 +385,7 @@ def delete_song_db(title, link):
     cur = mysql.connection.cursor()
     try:
         cur.execute(f'''
-            DELETE FROM music.songs WHERE title = '{title}' and link = '{link}';
+            DELETE FROM {DB_NAME}.songs WHERE title = '{title}' and link = '{link}';
         ''')
         mysql.connection.commit()
         return True
